@@ -85,3 +85,16 @@ function setActiveFilter(activeBtn) {
 
 // Lancement au chargement de la page
 fetchWorks();
+
+function checkLoginStatus() {
+    const token = localStorage.getItem('token');
+    const editBtn = document.getElementById('edit-gallery-btn');
+    
+    if (token) {
+        editBtn.classList.remove('hidden');
+    } else {
+        editBtn.classList.add('hidden');
+    }
+}
+
+checkLoginStatus();
