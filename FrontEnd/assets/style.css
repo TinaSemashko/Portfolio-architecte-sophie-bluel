@@ -186,3 +186,77 @@ footer nav ul {
 	margin: 2em
 }
 
+/*Filters */
+
+.filters {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 50px;
+}
+
+.filter-btn {
+    padding: 10px 20px;
+    border: 1px solid #1D6154;
+    border-radius: 60px;
+    background-color: white;
+    color: #1D6154;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background-color: #1D6154;
+    color: white;
+}
+
+/* Login page */
+#login {
+    max-width: 400px;
+    margin: 100px auto;
+    text-align: center;
+}
+
+#login h2 {
+    margin-bottom: 30px;
+}
+
+#login form {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+#login label {
+    margin-top: 20px;
+    margin-bottom: 5px;
+}
+
+#login input {
+    padding: 15px;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#login button {
+    margin-top: 30px;
+    padding: 15px;
+    background-color: #1D6154;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#login a {
+    display: block;
+    margin-top: 20px;
+    color: inherit;
+    font-size: 14px;
+    text-decoration: underline;
+}
