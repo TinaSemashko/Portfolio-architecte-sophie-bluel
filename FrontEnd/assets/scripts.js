@@ -165,15 +165,35 @@ function setupImagePreview() {
     
     imageInput.addEventListener('change', () => {
         const file = imageInput.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                imagePreview.src = e.target.result;
-                imagePreview.classList.remove('hidden');
-                uploadZone.classList.add('hidden');
-            };
-            reader.readAsDataURL(file);
+        
+        if (!file) return;
+        
+        // Check file size (4MB = 4 * 1024 * 1024 bytes)
+        const maxSize = 4 * 1024 * 1024;
+        if (file.size > maxSize) {
+            showModalError('Le fichier dépasse 4 Mo');
+            imageInput.value = '';
+            return;
         }
+        
+        // Check file type
+        const allowedTypes = ['image/png', 'image/jpeg'];
+        if (!allowedTypes.includes(file.type)) {
+            showModalError('Format accepté : JPG ou PNG uniquement');
+            imageInput.value = '';
+            return;
+        }
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            imagePreview.classList.remove('hidden');
+            uploadZone.classList.add('hidden');
+            hideModalError();
+        };
+        reader.readAsDataURL(file);
+        
         validateForm();
     });
 }
@@ -279,6 +299,66 @@ async function deleteWork(workId) {
     }
 }
 
+// ==================== ADD WORK ====================
+
+async function addWork(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        showModalError('Vous devez être connecté');
+        return;
+    }
+    
+    const imageInput = document.getElementById('image-input');
+    const titleInput = document.getElementById('title-input');
+    const categoryInput = document.getElementById('category-input');
+    
+    // Create FormData
+    const formData = new FormData();
+    formData.append('image', imageInput.files[0]);
+    formData.append('title', titleInput.value);
+    formData.append('category', categoryInput.value);
+    
+    try {
+        const response = await fetch('http://localhost:5678/api/works', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        if (response.ok) {
+            const newWork = await response.json();
+            // Add to array
+            allWorks.push(newWork);
+            // Update both galleries
+            displayWorks(allWorks);
+            displayModalGallery(allWorks);
+            // Reset form and go back to gallery view
+            resetAddForm();
+            showGalleryView();
+        } else if (response.status === 400) {
+            showModalError('Données invalides');
+        } else if (response.status === 401) {
+            showModalError('Session expirée, reconnectez-vous');
+            localStorage.removeItem('token');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+        } else if (response.status === 500) {
+            showModalError('Erreur serveur inattendue');
+        } else {
+            showModalError('Erreur lors de l\'ajout');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showModalError('Erreur de connexion au serveur');
+    }
+}
+
 // ==================== EVENT LISTENERS ====================
 
 function setupEventListeners() {
@@ -287,12 +367,14 @@ function setupEventListeners() {
     const modalClose = document.querySelector('.modal-close');
     const modalBack = document.querySelector('.modal-back');
     const btnAddPhoto = document.getElementById('btn-add-photo');
+    const addWorkForm = document.getElementById('add-work-form');
     
     editBtn?.addEventListener('click', openModal);
     modalOverlay?.addEventListener('click', closeModal);
     modalClose?.addEventListener('click', closeModal);
     modalBack?.addEventListener('click', showGalleryView);
     btnAddPhoto?.addEventListener('click', showAddView);
+    addWorkForm?.addEventListener('submit', addWork);
     
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeModal();
