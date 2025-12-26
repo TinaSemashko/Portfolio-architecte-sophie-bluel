@@ -12,6 +12,9 @@
 	<link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
+	<div id="edit-bar" class="edit-bar hidden">
+    <p><i class="fa-regular fa-pen-to-square"></i> Mode édition</p>
+</div>
 <header>
 	<h1>Sophie Bluel <span>Architecte d'intérieur</span></h1>
 	<nav>
@@ -43,7 +46,8 @@
             modifier
         </button>
     </div>
-		<div class="gallery"></div>
+		<div class="filters"></div>
+        <div class="gallery"></div>
 	</section>
 	<section id="contact">
 		<h2>Contact</h2>
@@ -67,6 +71,53 @@
 		</ul>
 	</nav>
 </footer>
+<!-- Modal -->
+<div id="modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <button class="modal-close" aria-label="Fermer">&times;</button>
+        <button class="modal-back hidden" aria-label="Retour">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
+
+        <!-- Error message -->
+        <p id="modal-error" class="error-message hidden"></p>
+        
+        <!-- Vue 1: Galerie photo -->
+        <div id="modal-gallery-view" class="modal-view">
+            <h3>Galerie photo</h3>
+            <div class="modal-gallery"></div>
+            <hr>
+            <button id="btn-add-photo" class="btn-primary">Ajouter une photo</button>
+        </div>
+        
+        <!-- Vue 2: Ajout photo -->
+        <div id="modal-add-view" class="modal-view hidden">
+            <h3>Ajout photo</h3>
+            <form id="add-work-form">
+                <div class="upload-zone" id="upload-zone">
+                    <i class="fa-regular fa-image"></i>
+                    <label for="image-input" class="btn-upload">+ Ajouter photo</label>
+                    <input type="file" id="image-input" name="image" accept="image/png, image/jpeg" required>
+                    <p>jpg, png : 4mo max</p>
+                </div>
+                <img id="image-preview" class="image-preview hidden" alt="Aperçu">
+                
+                <label for="title-input">Titre</label>
+                <input type="text" id="title-input" name="title" required>
+                
+                <label for="category-input">Catégorie</label>
+                <select id="category-input" name="category" required>
+                    <option value=""></option>
+                </select>
+                
+                <hr>
+                <button type="submit" class="btn-primary btn-validate" disabled>Valider</button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="./assets/scripts.js"></script>
 </body>
 </html>

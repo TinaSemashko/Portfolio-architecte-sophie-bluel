@@ -1,18 +1,19 @@
-let allWorks = []; // Хранение всех работ для фильтрации
+let allWorks = [];
 
-// Récupération des travaux depuis l'API
+// ==================== FETCH & DISPLAY ====================
+
 async function fetchWorks() {
     try {
         const response = await fetch('http://localhost:5678/api/works');
         allWorks = await response.json();
         displayWorks(allWorks);
         displayFilters(allWorks);
+        displayModalGallery(allWorks);
     } catch (error) {
         console.error('Erreur lors de la récupération des travaux:', error);
     }
 }
 
-// Affichage des travaux dans la galerie
 function displayWorks(works) {
     const gallery = document.querySelector('.gallery');
     gallery.innerHTML = '';
@@ -33,22 +34,13 @@ function displayWorks(works) {
     });
 }
 
-// Génération dynamique des filtres
 function displayFilters(works) {
-    const portfolio = document.getElementById('portfolio');
-    const gallery = document.querySelector('.gallery');
+    const filtersContainer = document.querySelector('.filters');
+    if (filtersContainer.children.length > 0) return;
     
-    // Créer le conteneur des filtres
-    const filtersContainer = document.createElement('div');
-    filtersContainer.classList.add('filters');
-    
-    // Extraire les catégories uniques avec Set
     const categories = works.map(work => work.category);
-    console.log(categories);
     const uniqueCategories = [...new Map(categories.map(cat => [cat.id, cat])).values()];
-    console.log(uniqueCategories);
     
-    // Bouton "Tous"
     const btnAll = document.createElement('button');
     btnAll.textContent = 'Tous';
     btnAll.classList.add('filter-btn', 'active');
@@ -58,24 +50,18 @@ function displayFilters(works) {
     });
     filtersContainer.appendChild(btnAll);
     
-    // Boutons pour chaque catégorie
     uniqueCategories.forEach(category => {
         const btn = document.createElement('button');
         btn.textContent = category.name;
         btn.classList.add('filter-btn');
         btn.addEventListener('click', () => {
             setActiveFilter(btn);
-            const filteredWorks = allWorks.filter(work => work.categoryId === category.id);
-            displayWorks(filteredWorks);
+            displayWorks(allWorks.filter(work => work.categoryId === category.id));
         });
         filtersContainer.appendChild(btn);
     });
-    
-    // Insérer les filtres avant la galerie
-    portfolio.insertBefore(filtersContainer, gallery);
 }
 
-// Gestion de l'état actif des boutons
 function setActiveFilter(activeBtn) {
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -83,18 +69,242 @@ function setActiveFilter(activeBtn) {
     activeBtn.classList.add('active');
 }
 
-// Lancement au chargement de la page
-fetchWorks();
+// ==================== LOGIN STATUS ====================
 
 function checkLoginStatus() {
     const token = localStorage.getItem('token');
+    const editBar = document.getElementById('edit-bar');
     const editBtn = document.getElementById('edit-gallery-btn');
+    const filters = document.querySelector('.filters');
     
     if (token) {
+        editBar.classList.remove('hidden');
         editBtn.classList.remove('hidden');
+        filters.classList.add('hidden');
     } else {
+        editBar.classList.add('hidden');
         editBtn.classList.add('hidden');
+        filters.classList.remove('hidden');
     }
 }
 
-checkLoginStatus();
+// ==================== MODAL ====================
+
+function openModal() {
+    const modal = document.getElementById('modal');
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    showGalleryView();
+}
+
+function closeModal() {
+    const modal = document.getElementById('modal');
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    resetAddForm();
+    hideModalError();
+}
+
+function showGalleryView() {
+    document.getElementById('modal-gallery-view').classList.remove('hidden');
+    document.getElementById('modal-add-view').classList.add('hidden');
+    document.querySelector('.modal-back').classList.add('hidden');
+}
+
+function showAddView() {
+    document.getElementById('modal-gallery-view').classList.add('hidden');
+    document.getElementById('modal-add-view').classList.remove('hidden');
+    document.querySelector('.modal-back').classList.remove('hidden');
+    populateCategorySelect();
+}
+
+function displayModalGallery(works) {
+    const modalGallery = document.querySelector('.modal-gallery');
+    if (!modalGallery) return;
+    modalGallery.innerHTML = '';
+    
+    works.forEach(work => {
+        const figure = document.createElement('figure');
+        
+        const img = document.createElement('img');
+        img.src = work.imageUrl;
+        img.alt = work.title;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.classList.add('delete-btn');
+        deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+        deleteBtn.addEventListener('click', () => deleteWork(work.id));
+        
+        figure.appendChild(img);
+        figure.appendChild(deleteBtn);
+        modalGallery.appendChild(figure);
+    });
+}
+
+function populateCategorySelect() {
+    const select = document.getElementById('category-input');
+    if (!select || select.options.length > 1) return;
+    
+    const categories = [...new Map(allWorks.map(w => [w.category.id, w.category])).values()];
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name;
+        select.appendChild(option);
+    });
+}
+
+// ==================== IMAGE PREVIEW ====================
+
+function setupImagePreview() {
+    const imageInput = document.getElementById('image-input');
+    const imagePreview = document.getElementById('image-preview');
+    const uploadZone = document.getElementById('upload-zone');
+    
+    if (!imageInput) return;
+    
+    imageInput.addEventListener('change', () => {
+        const file = imageInput.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreview.classList.remove('hidden');
+                uploadZone.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+        validateForm();
+    });
+}
+
+// ==================== FORM VALIDATION ====================
+
+function validateForm() {
+    const imageInput = document.getElementById('image-input');
+    const titleInput = document.getElementById('title-input');
+    const categoryInput = document.getElementById('category-input');
+    const btnValidate = document.querySelector('.btn-validate');
+    
+    if (!imageInput || !titleInput || !categoryInput || !btnValidate) return;
+    
+    const hasImage = imageInput.files.length > 0;
+    const hasTitle = titleInput.value.trim() !== '';
+    const hasCategory = categoryInput.value !== '';
+    
+    btnValidate.disabled = !(hasImage && hasTitle && hasCategory);
+}
+
+function setupFormValidation() {
+    const titleInput = document.getElementById('title-input');
+    const categoryInput = document.getElementById('category-input');
+    
+    if (!titleInput || !categoryInput) return;
+    
+    titleInput.addEventListener('input', validateForm);
+    categoryInput.addEventListener('change', validateForm);
+}
+
+function resetAddForm() {
+    const form = document.getElementById('add-work-form');
+    const imagePreview = document.getElementById('image-preview');
+    const uploadZone = document.getElementById('upload-zone');
+    const btnValidate = document.querySelector('.btn-validate');
+    
+    if (!form) return;
+    
+    form.reset();
+    if (imagePreview) imagePreview.classList.add('hidden');
+    if (uploadZone) uploadZone.classList.remove('hidden');
+    if (btnValidate) btnValidate.disabled = true;
+}
+
+// ==================== ERROR DISPLAY ====================
+
+function showModalError(message) {
+    const errorDiv = document.getElementById('modal-error');
+    if (!errorDiv) return;
+    
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        errorDiv.classList.add('hidden');
+    }, 5000);
+}
+
+function hideModalError() {
+    const errorDiv = document.getElementById('modal-error');
+    if (errorDiv) errorDiv.classList.add('hidden');
+}
+
+// ==================== DELETE WORK ====================
+
+async function deleteWork(workId) {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        showModalError('Vous devez être connecté');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://localhost:5678/api/works/${workId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            allWorks = allWorks.filter(work => work.id !== workId);
+            displayWorks(allWorks);
+            displayModalGallery(allWorks);
+            hideModalError();
+        } else if (response.status === 401) {
+            showModalError('Session expirée, reconnectez-vous');
+            localStorage.removeItem('token');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+        } else if (response.status === 500) {
+            showModalError('Erreur serveur inattendue');
+        } else {
+            showModalError('Erreur lors de la suppression');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showModalError('Erreur de connexion au serveur');
+    }
+}
+
+// ==================== EVENT LISTENERS ====================
+
+function setupEventListeners() {
+    const editBtn = document.getElementById('edit-gallery-btn');
+    const modalOverlay = document.querySelector('.modal-overlay');
+    const modalClose = document.querySelector('.modal-close');
+    const modalBack = document.querySelector('.modal-back');
+    const btnAddPhoto = document.getElementById('btn-add-photo');
+    
+    editBtn?.addEventListener('click', openModal);
+    modalOverlay?.addEventListener('click', closeModal);
+    modalClose?.addEventListener('click', closeModal);
+    modalBack?.addEventListener('click', showGalleryView);
+    btnAddPhoto?.addEventListener('click', showAddView);
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+}
+
+// ==================== INIT ====================
+
+document.addEventListener('DOMContentLoaded', () => {
+    fetchWorks();
+    checkLoginStatus();
+    setupEventListeners();
+    setupImagePreview();
+    setupFormValidation();
+});
